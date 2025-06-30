@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { ChevronDownIcon, ChevronLeftIcon, SunMoonIcon } from "lucide-react";
+import { AlertTriangleIcon, ChevronDownIcon, ChevronLeftIcon, SunMoonIcon } from "lucide-react";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,31 @@ import {
 interface ProjectHeaderProps {
     projectId: string;
 }
+
+export const ProjectHeaderSkeleton = () => {
+    return (
+        <header className="p-2 flex justify-between items-center border-b border-border bg-background">
+            <div className="flex items-center gap-2 pl-2">
+                <div className="w-[18px] h-[18px] bg-muted rounded animate-pulse" />
+                <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                <div className="w-4 h-4 bg-muted rounded animate-pulse" />
+            </div>
+        </header>
+    );
+};
+
+export const ProjectHeaderError = () => {
+    return (
+        <header className="p-2 flex justify-between items-center border-b border-border bg-background">
+            <div className="flex items-center gap-2 pl-2">
+                <div className="flex items-center gap-2 text-destructive">
+                    <AlertTriangleIcon className="w-4 h-4" />
+                    <span className="text-sm font-medium">Failed to load project</span>
+                </div>
+            </div>
+        </header>
+    );
+};
 
 export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
     const trpc = useTRPC();
