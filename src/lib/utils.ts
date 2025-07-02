@@ -63,11 +63,11 @@ export function convertFilesToTreeItems(
   return Array.isArray(result) ? result : [result];
 }
 
-export const parseAgentOutput = (input: Message[]) => {
-    const output = input[0];
-    if (output.type !== "text") return "Fragment";
-    if (Array.isArray(output.content)) {
-        return output.content.map((txt) => txt).join("");
-    }
-    else return output.content
+export const parseAgentOutput = (input: Message[], isFragment: boolean) => {
+  const output = input[0];
+  if (output.type !== "text") return isFragment ? "Fragment" : "Here you go!";
+  if (Array.isArray(output.content)) {
+    return output.content.map((txt) => txt).join("");
+  }
+  else return output.content
 }

@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prismaClient';
 import { FRAGMENT_TITLE_PROMPT, PROMPT, RESPONSE_PROMPT } from '@/prompt';
 import { z } from 'zod';
 import { parseAgentOutput } from '@/lib/utils';
+import { baseModel, apiKey, baseUrl, summaryModel, sandboxName } from '@/lib/modelProps';
 
 interface AgentState {
     summary: string;
@@ -17,7 +18,7 @@ export const codeAgentFunction = inngest.createFunction(
     { event: 'code-agent/run' },
     async ({ event, step }) => {
         const sandboxId = await step.run("get-sandbox-id", async () => {
-            const sandbox = await Sandbox.create("kool-ai-nextjs-app");
+            const sandbox = await Sandbox.create(sandboxName);
             return sandbox.sandboxId;
         });
 
@@ -60,9 +61,9 @@ export const codeAgentFunction = inngest.createFunction(
             description: 'A senior software engineer working in a sandboxed Next.js environment',
             system: PROMPT,
             model: openai({
-                model: "deepseek/deepseek-chat-v3-0324",
-                apiKey: process.env.OPENROUTER_API_KEY,
-                baseUrl: "https://openrouter.ai/api/v1/",
+                model: baseModel,
+                apiKey: apiKey,
+                baseUrl: baseUrl,
             }),
             tools: [
                 createTool({
@@ -70,7 +71,6 @@ export const codeAgentFunction = inngest.createFunction(
                     description: "Use the terminal to run commands",
                     parameters: z.object({
                         command: z.string(),
-
                     }),
                     handler: async ({ command }, { step }) => {
                         return await step?.run("terminal", async () => {
@@ -104,24 +104,36 @@ export const codeAgentFunction = inngest.createFunction(
                                 content: z.string(),
                             })
                         )
-
                     }),
                     handler: async ({ files }, { step, network }: Tool.Options<AgentState>) => {
                         const newFiles = await step?.run("createOrUpdateFiles", async () => {
                             try {
+                                if (!Array.isArray(files)) {
+                                    console.error("Files parameter is not an array:", files);
+                                    return `Error: Files parameter must be an array, received: ${typeof files}`;
+                                }
+
                                 const updatedFiles = network.state.data.files || {};
                                 const sandbox = await getSandbox(sandboxId);
+
                                 for (const file of files) {
+                                    if (!file || typeof file.path !== 'string' || typeof file.content !== 'string') {
+                                        console.error("Invalid file object:", file);
+                                        continue;
+                                    }
+
                                     updatedFiles[file.path] = file.content;
                                     await sandbox.files.write(file.path, file.content);
                                 }
+
                                 return updatedFiles;
                             } catch (e) {
+                                console.error("Error in createOrUpdateFiles:", e);
                                 return `Error: ${e}`;
                             }
                         });
 
-                        if (typeof newFiles === "object") {
+                        if (typeof newFiles === "object" && newFiles !== null && !Array.isArray(newFiles)) {
                             network.state.data.files = newFiles;
                         }
                     }
@@ -135,14 +147,27 @@ export const codeAgentFunction = inngest.createFunction(
                     handler: async ({ files }, { step }) => {
                         return await step?.run("readFiles", async () => {
                             try {
+                                if (!Array.isArray(files)) {
+                                    console.error("Files parameter is not an array:", files);
+                                    return `Error: Files parameter must be an array, received: ${typeof files}`;
+                                }
+
                                 const sandbox = await getSandbox(sandboxId);
                                 const contents = [];
+
                                 for (const file of files) {
+                                    if (typeof file !== 'string') {
+                                        console.error("Invalid file path:", file);
+                                        continue;
+                                    }
+
                                     const content = await sandbox.files.read(file);
                                     contents.push({ path: file, content });
                                 }
+
                                 return JSON.stringify(contents);
                             } catch (e) {
+                                console.error("Error in readFiles:", e);
                                 return `Error: ${e}`;
                             }
                         });
@@ -183,9 +208,9 @@ export const codeAgentFunction = inngest.createFunction(
             description: 'A clean fragment title generator',
             system: FRAGMENT_TITLE_PROMPT,
             model: openai({
-                model: "deepseek/deepseek-chat-v3-0324",
-                apiKey: process.env.OPENROUTER_API_KEY,
-                baseUrl: "https://openrouter.ai/api/v1/",
+                model: summaryModel,
+                apiKey: apiKey,
+                baseUrl: baseUrl,
             }),
         })
 
@@ -194,9 +219,9 @@ export const codeAgentFunction = inngest.createFunction(
             description: 'A response generator',
             system: RESPONSE_PROMPT,
             model: openai({
-                model: "deepseek/deepseek-chat-v3-0324",
-                apiKey: process.env.OPENROUTER_API_KEY,
-                baseUrl: "https://openrouter.ai/api/v1/",
+                model: summaryModel,
+                apiKey: apiKey,
+                baseUrl: baseUrl,
             }),
         })
 
@@ -225,13 +250,13 @@ export const codeAgentFunction = inngest.createFunction(
             return await prisma.message.create({
                 data: {
                     projectId: event.data.projectId,
-                    content: parseAgentOutput(responseOutput),
+                    content: parseAgentOutput(responseOutput, false),
                     role: "ASSISTANT",
                     type: "RESULT",
                     fragment: {
                         create: {
                             sandboxUrl: sandboxUrl,
-                            title: parseAgentOutput(fragmentTitleOutput),
+                            title: parseAgentOutput(fragmentTitleOutput, true),
                             files: result.state.data.files,
                         }
                     }
@@ -241,7 +266,7 @@ export const codeAgentFunction = inngest.createFunction(
 
         return {
             url: sandboxUrl,
-            title: "Fragment",
+            title: parseAgentOutput(fragmentTitleOutput, true),
             files: result.state.data.files,
             summary: result.state.data.summary,
         }

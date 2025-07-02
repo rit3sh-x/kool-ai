@@ -98,7 +98,7 @@ export const MessagesContainer = ({ projectId, activeFragment, setActiveFragment
     const { data: messages } = useSuspenseQuery(trpc.messages.getMany.queryOptions({
         projectId,
     }, {
-        refetchInterval: 5000
+        refetchInterval: 2000
     }))
 
     useEffect(() => {
@@ -118,7 +118,7 @@ export const MessagesContainer = ({ projectId, activeFragment, setActiveFragment
     const lastMessageByUser = lastMessage?.role === "USER";
 
     return (
-        <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex flex-col flex-1 min-h-0 pt-4">
             <div className="flex-1 min-h-0 overflow-y-auto">
                 <div className="flex flex-col gap-4">
                     {messages.map((message) => (

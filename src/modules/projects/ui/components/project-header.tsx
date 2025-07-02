@@ -26,10 +26,10 @@ interface ProjectHeaderProps {
 export const ProjectHeaderSkeleton = () => {
     return (
         <header className="p-2 flex justify-between items-center border-b border-border bg-background">
-            <div className="flex items-center gap-2 pl-2">
-                <div className="w-[18px] h-[18px] bg-muted rounded animate-pulse" />
+            <div className="flex items-center gap-2 pl-2!">
+                <div className="w-[32px] h-[32px] bg-muted rounded animate-pulse" />
                 <div className="h-4 w-24 bg-muted rounded animate-pulse" />
-                <div className="w-4 h-4 bg-muted rounded animate-pulse" />
+                <ChevronDownIcon className="w-4 h-4 text-muted animate-pulse" />
             </div>
         </header>
     );
@@ -38,7 +38,7 @@ export const ProjectHeaderSkeleton = () => {
 export const ProjectHeaderError = () => {
     return (
         <header className="p-2 flex justify-between items-center border-b border-border bg-background">
-            <div className="flex items-center gap-2 pl-2">
+            <div className="flex items-center gap-2 pl-2!">
                 <div className="flex items-center gap-2 text-destructive">
                     <AlertTriangleIcon className="w-4 h-4" />
                     <span className="text-sm font-medium">Failed to load project</span>
